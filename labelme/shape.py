@@ -5,6 +5,7 @@ from qtpy import QtCore
 from qtpy import QtGui
 
 import labelme.utils
+from pose_config import *
 
 
 # TODO(unknown):
@@ -60,6 +61,7 @@ class Shape(object):
         self.shape_type = shape_type
         self.flags = flags
         self.other_data = {}
+        self.pose = {}
 
         self._highlightIndex = None
         self._highlightMode = self.NEAR_VERTEX
@@ -144,8 +146,9 @@ class Shape(object):
 
             line_path = QtGui.QPainterPath()
             vrtx_path = QtGui.QPainterPath()
+            pose_path = QtGui.QPainterPath()
 
-            if self.shape_type == "rectangle":
+            if self.shape_type in[ "rectangle","pose"]:
                 assert len(self.points) in [1, 2]
                 if len(self.points) == 2:
                     rectangle = self.getRectFromLine(*self.points)
@@ -153,12 +156,21 @@ class Shape(object):
                 for i in range(len(self.points)):
                     self.drawVertex(vrtx_path, i)
             if self.shape_type == "pose":
-                assert len(self.points) in [1, 2]
-                if len(self.points) == 2:
-                    rectangle = self.getRectFromLine(*self.points)
-                    line_path.addRect(rectangle)
-                for i in range(len(self.points)):
-                    self.drawVertex(vrtx_path, i)
+                d = self.point_size / self.scale
+                for key, location in self.pose.items():
+                    pose_path.moveTo(location)
+                    pose_path.addEllipse(location, d / 2.0, d / 2.0)
+
+                for connection in pose_define["skeleton"]:
+                    point1 = pose_define["keypoints"][connection[0] - 1]
+                    point2 = pose_define["keypoints"][connection[1] - 1]
+                    if point1 in self.pose.keys() and point2 in self.pose.keys():
+                        pose_path.moveTo(self.pose[point1])
+                        pose_path.lineTo(self.pose[point2])
+
+
+
+
             elif self.shape_type == "circle":
                 assert len(self.points) in [1, 2]
                 if len(self.points) == 2:
@@ -187,6 +199,7 @@ class Shape(object):
             painter.drawPath(line_path)
             painter.drawPath(vrtx_path)
             painter.fillPath(vrtx_path, self._vertex_fill_color)
+            painter.drawPath(pose_path)
             if self.fill:
                 color = (
                     self.select_fill_color

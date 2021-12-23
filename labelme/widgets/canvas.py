@@ -6,6 +6,8 @@ from labelme import QT5
 from labelme.shape import Shape
 import labelme.utils
 
+from pose_config import *
+
 
 # TODO(unknown):
 # - [maybe] Find optimal epsilon value.
@@ -63,7 +65,6 @@ class Canvas(QtWidgets.QWidget):
         #   - createMode == 'line': the line
         #   - createMode == 'point': the point
         self.line = Shape()
-        self.pose = []
         self.prevPoint = QtCore.QPoint()
         self.prevMovePoint = QtCore.QPoint()
         self.offsets = QtCore.QPoint(), QtCore.QPoint()
@@ -189,6 +190,7 @@ class Canvas(QtWidgets.QWidget):
     def selectedEdge(self):
         return self.hEdge is not None
 
+
     def mouseMoveEvent(self, ev):
         """Update line with last point and current coordinates."""
         try:
@@ -234,6 +236,14 @@ class Canvas(QtWidgets.QWidget):
             elif self.createMode == "pose":
                 self.line.points = [self.current[0], pos]
                 self.line.close()
+                self.current.pose = {}
+                start = self.line.points[0]
+                end = self.line.points[1]
+                width = end.x() - start.x()
+                height = end.y() - start.y()
+                for key, tpoint in pose_define["location"].items():
+                    self.current.pose[key] = QtCore.QPoint(int(tpoint[0]* width + start.x()), int(tpoint[1]*height + start.y()))
+
             elif self.createMode == "circle":
                 self.line.points = [self.current[0], pos]
                 self.line.shape_type = "circle"
@@ -372,7 +382,6 @@ class Canvas(QtWidgets.QWidget):
                     elif self.createMode == "pose":
                         assert len(self.current.points) == 1
                         self.current.points = self.line.points
-                        self.pose = [100, 100, 200, 200]
                         self.finalise()
 
                     elif self.createMode == "linestrip":
@@ -682,29 +691,23 @@ class Canvas(QtWidgets.QWidget):
         return maxGroupId
 
 
-    def getPoseLabel(self, i):
-        labels = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", \
-                  "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", \
-                  "right_knee", "left_ankle", "right_ankle"]
-        return labels[i]
-
     def finalise(self):
         assert self.current
         self.current.close()
 
         if self.createMode == "pose":
             group_id = self.getMaxGroupId() + 1
-            for i in range (0, len(self.pose),2):
-                point = Shape(shape_type="point", group_id=group_id, label=self.getPoseLabel(i))
-                point.current = [QtCore.QPoint(self.pose[i], self.pose[i+1])]
-                point.points = [QtCore.QPoint(self.pose[i], self.pose[i+1])]
+            for key, location in self.current.pose.items():
+                point = Shape(shape_type="point", group_id=group_id, label=key)
+                point.current = [location]
+                point.points = [location]
                 self.shapes.append(point)
                 self.newPoseShape.emit()
         else:
             self.shapes.append(self.current)
         self.storeShapes()
         self.current = None
-        self.pose = []
+
         self.setHiding(False)
         if self.createMode != "pose":
             self.newShape.emit()

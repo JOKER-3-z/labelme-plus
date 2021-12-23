@@ -89,6 +89,13 @@ def main():
         default=argparse.SUPPRESS,
     )
     parser.add_argument(
+        "--pose",
+        help="whether enable pose functions",
+        default=False,
+    )
+
+
+    parser.add_argument(
         "--validatelabel",
         dest="validate_label",
         choices=["exact"],

@@ -31,6 +31,8 @@ from labelme.widgets import LabelListWidgetItem
 from labelme.widgets import ToolBar
 from labelme.widgets import UniqueLabelQListWidget
 from labelme.widgets import ZoomWidget
+from pose_config import *
+import json
 
 # FIXME
 # - [medium] Set max zoom value to something big enough for FitWidth/Window
@@ -141,6 +143,22 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.uniqLabelList.addItem(item)
                 rgb = self._get_rgb_by_label(label)
                 self.uniqLabelList.setItemLabel(item, label, rgb)
+
+        self.enablePose = self._config["pose"]
+
+        if self.enablePose:
+            for label in pose_define["keypoints"]:
+                item = self.uniqLabelList.createItemFromLabel(label)
+                self.uniqLabelList.addItem(item)
+                rgb = self._get_rgb_by_label(label)
+                self.uniqLabelList.setItemLabel(item, label, rgb)
+
+            if os.path.exists(POSE_TEMPLATE_JSON):
+                data = json.load(open(POSE_TEMPLATE_JSON))
+                pose_define["location"] = data
+
+            print(pose_define)
+
         self.label_dock = QtWidgets.QDockWidget(self.tr(u"Label List"), self)
         self.label_dock.setObjectName(u"Label List")
         self.label_dock.setWidget(self.uniqLabelList)
@@ -332,6 +350,14 @@ class MainWindow(QtWidgets.QMainWindow):
             "objects",
             self.tr("Start drawing rectangles"),
             enabled=False,
+        )
+        createPoseTemplate = action(
+            self.tr("save Pose template"),
+            lambda:  self.savePoseTemplate(),
+            None,
+            "objects",
+            self.tr("Start save pose template"),
+            enabled=True,
         )
         createPoseMode = action(
             self.tr("Create Pose"),
@@ -605,6 +631,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createMode=createMode,
             editMode=editMode,
             createRectangleMode=createRectangleMode,
+            createPoseTemplate=createPoseTemplate,
             createPoseMode=createPoseMode,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
@@ -659,6 +686,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 close,
                 createMode,
                 createRectangleMode,
+                createPoseTemplate,
                 createPoseMode,
                 createCircleMode,
                 createLineMode,
@@ -866,13 +894,17 @@ class MainWindow(QtWidgets.QMainWindow):
         actions = (
             self.actions.createMode,
             self.actions.createRectangleMode,
-            self.actions.createPoseMode,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
             self.actions.createLineStripMode,
             self.actions.editMode,
         )
+        if self.enablePose:
+            actions = [x for x in list(actions)]
+            actions.extend([self.actions.createPoseTemplate, self.actions.createPoseMode])
+            actions = tuple(actions)
+
         utils.addActions(self.menus.edit, actions + self.actions.editMenu)
 
     def setDirty(self):
@@ -969,6 +1001,49 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.undoLastPoint.setEnabled(drawing)
         self.actions.undo.setEnabled(not drawing)
         self.actions.delete.setEnabled(not drawing)
+
+    def savePoseTemplate(self):
+
+
+
+        labels = []
+        shapes = [self.format_shape(item.shape()) for item in self.labelList]
+        location_dict = {}
+        for shape in shapes:
+            labels.append(shape["label"])
+            location_dict[shape["label"]] = [shape["points"][0][0]/self.image.width(), shape["points"][0][1]/self.image.height()]
+
+        # check has only one for each pose annotations
+        if len(labels) != len(set(labels)):
+            mesg = QtWidgets.QMessageBox()
+            mesg.setText("has duplicate keypoint")
+            mesg.exec()
+            return
+
+        #not check all keypoint defined. so you could define half pose for example
+
+        # if set(labels) != set(pose_define["keypoints"]):
+        #     mesg = QtWidgets.QMessageBox()
+        #     mesg.setText("missing keypoint")
+        #     mesg.exec()
+        #     return
+
+        with open(POSE_TEMPLATE_JSON,"w") as f:
+            json.dump(location_dict, f)
+
+        mesg = QtWidgets.QMessageBox()
+        mesg.setText("finish save template")
+        mesg.exec()
+        return
+
+
+
+
+
+
+
+
+
 
     def toggleDrawMode(self, edit=True, createMode="polygon"):
         self.canvas.setEditing(edit)
@@ -1270,27 +1345,30 @@ class MainWindow(QtWidgets.QMainWindow):
             item.setCheckState(Qt.Checked if flag else Qt.Unchecked)
             self.flag_widget.addItem(item)
 
+    @staticmethod
+    def format_shape(s):
+        # PyQt4 cannot handle QVariant
+        if isinstance(s, QtCore.QVariant):
+            s = s.toPyObject()
+
+        data = s.other_data.copy()
+        data.update(
+            dict(
+                label=s.label.encode("utf-8") if PY2 else s.label,
+                points=[(p.x(), p.y()) for p in s.points],
+                group_id=s.group_id,
+                shape_type=s.shape_type,
+                flags=s.flags,
+            )
+        )
+        return data
+
     def saveLabels(self, filename):
         lf = LabelFile()
 
-        def format_shape(s):
-            # PyQt4 cannot handle QVariant
-            if isinstance(s, QtCore.QVariant):
-                s = s.toPyObject()
 
-            data = s.other_data.copy()
-            data.update(
-                dict(
-                    label=s.label.encode("utf-8") if PY2 else s.label,
-                    points=[(p.x(), p.y()) for p in s.points],
-                    group_id=s.group_id,
-                    shape_type=s.shape_type,
-                    flags=s.flags,
-                )
-            )
-            return data
 
-        shapes = [format_shape(item.shape()) for item in self.labelList]
+        shapes = [self.format_shape(item.shape()) for item in self.labelList]
         flags = {}
         for i in range(self.flag_widget.count()):
             item = self.flag_widget.item(i)
@@ -1636,6 +1714,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toggleActions(True)
         self.canvas.setFocus()
         self.status(str(self.tr("Loaded %s")) % osp.basename(str(filename)))
+
         return True
 
     def resizeEvent(self, event):
