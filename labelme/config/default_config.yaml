@@ -1,5 +1,5 @@
 auto_save: false
-display_label_popup: true
+display_label_popup: false
 store_data: true
 keep_prev: false
 keep_prev_scale: false
@@ -89,6 +89,7 @@ shortcuts:
 
   create_polygon: Ctrl+N
   create_rectangle: Ctrl+R
+  create_pose: Alt+P
   create_circle: null
   create_line: null
   create_point: null

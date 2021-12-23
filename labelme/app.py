@@ -183,6 +183,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.canvas.scrollRequest.connect(self.scrollRequest)
 
         self.canvas.newShape.connect(self.newShape)
+        self.canvas.newPoseShape.connect(self.newPoseShape)
         self.canvas.shapeMoved.connect(self.setDirty)
         self.canvas.selectionChanged.connect(self.shapeSelectionChanged)
         self.canvas.drawingPolygon.connect(self.toggleDrawingSensitive)
@@ -330,6 +331,14 @@ class MainWindow(QtWidgets.QMainWindow):
             shortcuts["create_rectangle"],
             "objects",
             self.tr("Start drawing rectangles"),
+            enabled=False,
+        )
+        createPoseMode = action(
+            self.tr("Create Pose"),
+            lambda: self.toggleDrawMode(False, createMode="pose"),
+            shortcuts["create_pose"],
+            "objects",
+            self.tr("Start drawing pose"),
             enabled=False,
         )
         createCircleMode = action(
@@ -596,6 +605,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createMode=createMode,
             editMode=editMode,
             createRectangleMode=createRectangleMode,
+            createPoseMode=createPoseMode,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -630,6 +640,7 @@ class MainWindow(QtWidgets.QMainWindow):
             menu=(
                 createMode,
                 createRectangleMode,
+                createPoseMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -648,6 +659,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 close,
                 createMode,
                 createRectangleMode,
+                createPoseMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -854,6 +866,7 @@ class MainWindow(QtWidgets.QMainWindow):
         actions = (
             self.actions.createMode,
             self.actions.createRectangleMode,
+            self.actions.createPoseMode,
             self.actions.createCircleMode,
             self.actions.createLineMode,
             self.actions.createPointMode,
@@ -885,6 +898,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.save.setEnabled(False)
         self.actions.createMode.setEnabled(True)
         self.actions.createRectangleMode.setEnabled(True)
+        self.actions.createPoseMode.setEnabled(True)
         self.actions.createCircleMode.setEnabled(True)
         self.actions.createLineMode.setEnabled(True)
         self.actions.createPointMode.setEnabled(True)
@@ -962,6 +976,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if edit:
             self.actions.createMode.setEnabled(True)
             self.actions.createRectangleMode.setEnabled(True)
+            self.actions.createPoseMode.setEnabled(True)
             self.actions.createCircleMode.setEnabled(True)
             self.actions.createLineMode.setEnabled(True)
             self.actions.createPointMode.setEnabled(True)
@@ -970,6 +985,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if createMode == "polygon":
                 self.actions.createMode.setEnabled(False)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
                 self.actions.createPointMode.setEnabled(True)
@@ -977,6 +993,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "rectangle":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(False)
+                self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
                 self.actions.createPointMode.setEnabled(True)
@@ -984,6 +1001,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "line":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(False)
                 self.actions.createPointMode.setEnabled(True)
@@ -991,6 +1009,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "point":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
                 self.actions.createPointMode.setEnabled(False)
@@ -998,6 +1017,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "circle":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(False)
                 self.actions.createLineMode.setEnabled(True)
                 self.actions.createPointMode.setEnabled(True)
@@ -1005,10 +1025,19 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "linestrip":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
                 self.actions.createPointMode.setEnabled(True)
                 self.actions.createLineStripMode.setEnabled(False)
+            elif createMode == "pose":
+                self.actions.createMode.setEnabled(True)
+                self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseMode.setEnabled(False)
+                self.actions.createCircleMode.setEnabled(True)
+                self.actions.createLineMode.setEnabled(True)
+                self.actions.createPointMode.setEnabled(True)
+                self.actions.createLineStripMode.setEnabled(True)
             else:
                 raise ValueError("Unsupported createMode: %s" % createMode)
         self.actions.editMode.setEnabled(not edit)
@@ -1374,6 +1403,15 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.canvas.undoLastLine()
             self.canvas.shapesBackups.pop()
+
+    def newPoseShape(self):
+        shape = self.canvas.getLastLabel()
+        self.addLabel(shape)
+        self.actions.editMode.setEnabled(True)
+        self.actions.undoLastPoint.setEnabled(False)
+        self.actions.undo.setEnabled(True)
+        self.setDirty()
+
 
     def scrollRequest(self, delta, orientation):
         units = -delta * 0.1  # natural scroll

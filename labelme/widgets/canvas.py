@@ -25,6 +25,7 @@ class Canvas(QtWidgets.QWidget):
     zoomRequest = QtCore.Signal(int, QtCore.QPoint)
     scrollRequest = QtCore.Signal(int, int)
     newShape = QtCore.Signal()
+    newPoseShape = QtCore.Signal()
     selectionChanged = QtCore.Signal(list)
     shapeMoved = QtCore.Signal()
     drawingPolygon = QtCore.Signal(bool)
@@ -62,6 +63,7 @@ class Canvas(QtWidgets.QWidget):
         #   - createMode == 'line': the line
         #   - createMode == 'point': the point
         self.line = Shape()
+        self.pose = []
         self.prevPoint = QtCore.QPoint()
         self.prevMovePoint = QtCore.QPoint()
         self.offsets = QtCore.QPoint(), QtCore.QPoint()
@@ -108,6 +110,7 @@ class Canvas(QtWidgets.QWidget):
             "line",
             "point",
             "linestrip",
+            "pose"
         ]:
             raise ValueError("Unsupported createMode: %s" % value)
         self._createMode = value
@@ -226,6 +229,9 @@ class Canvas(QtWidgets.QWidget):
                 self.line[0] = self.current[-1]
                 self.line[1] = pos
             elif self.createMode == "rectangle":
+                self.line.points = [self.current[0], pos]
+                self.line.close()
+            elif self.createMode == "pose":
                 self.line.points = [self.current[0], pos]
                 self.line.close()
             elif self.createMode == "circle":
@@ -363,6 +369,12 @@ class Canvas(QtWidgets.QWidget):
                         assert len(self.current.points) == 1
                         self.current.points = self.line.points
                         self.finalise()
+                    elif self.createMode == "pose":
+                        assert len(self.current.points) == 1
+                        self.current.points = self.line.points
+                        self.pose = [100, 100, 200, 200]
+                        self.finalise()
+
                     elif self.createMode == "linestrip":
                         self.current.addPoint(self.line[1])
                         self.line[0] = self.current[-1]
@@ -662,14 +674,40 @@ class Canvas(QtWidgets.QWidget):
         w, h = self.pixmap.width(), self.pixmap.height()
         return not (0 <= p.x() <= w - 1 and 0 <= p.y() <= h - 1)
 
+    def getMaxGroupId(self):
+        maxGroupId = 0
+        for item in self.shapes:
+            if item.group_id is not None:
+                maxGroupId = max(item.group_id, maxGroupId)
+        return maxGroupId
+
+
+    def getPoseLabel(self, i):
+        labels = ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder", \
+                  "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", \
+                  "right_knee", "left_ankle", "right_ankle"]
+        return labels[i]
+
     def finalise(self):
         assert self.current
         self.current.close()
-        self.shapes.append(self.current)
+
+        if self.createMode == "pose":
+            group_id = self.getMaxGroupId() + 1
+            for i in range (0, len(self.pose),2):
+                point = Shape(shape_type="point", group_id=group_id, label=self.getPoseLabel(i))
+                point.current = [QtCore.QPoint(self.pose[i], self.pose[i+1])]
+                point.points = [QtCore.QPoint(self.pose[i], self.pose[i+1])]
+                self.shapes.append(point)
+                self.newPoseShape.emit()
+        else:
+            self.shapes.append(self.current)
         self.storeShapes()
         self.current = None
+        self.pose = []
         self.setHiding(False)
-        self.newShape.emit()
+        if self.createMode != "pose":
+            self.newShape.emit()
         self.update()
 
     def closeEnough(self, p1, p2):
@@ -828,13 +866,16 @@ class Canvas(QtWidgets.QWidget):
         self.storeShapes()
         return self.shapes[-1]
 
+    def getLastLabel(self):
+        return self.shapes[-1]
+
     def undoLastLine(self):
         assert self.shapes
         self.current = self.shapes.pop()
         self.current.setOpen()
         if self.createMode in ["polygon", "linestrip"]:
             self.line.points = [self.current[-1], self.current[0]]
-        elif self.createMode in ["rectangle", "line", "circle"]:
+        elif self.createMode in ["rectangle", "line", "circle", "pose"]:
             self.current.points = self.current.points[0:1]
         elif self.createMode == "point":
             self.current = None
