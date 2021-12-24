@@ -143,6 +143,9 @@ class Shape(object):
             # Try using integer sizes for smoother drawing(?)
             pen.setWidth(max(1, int(round(2.0 / self.scale))))
             painter.setPen(pen)
+            font =  QtGui.QFont()
+            font.setPointSize(6)
+            painter.setFont(font)
 
             line_path = QtGui.QPainterPath()
             vrtx_path = QtGui.QPainterPath()
@@ -155,6 +158,9 @@ class Shape(object):
                     line_path.addRect(rectangle)
                 for i in range(len(self.points)):
                     self.drawVertex(vrtx_path, i)
+            if self.shape_type == "point":
+                painter.drawText(self.points[0], self.label)
+
             if self.shape_type == "pose":
                 d = self.point_size / self.scale
                 for key, location in self.pose.items():
@@ -193,6 +199,7 @@ class Shape(object):
                 for i, p in enumerate(self.points):
                     line_path.lineTo(p)
                     self.drawVertex(vrtx_path, i)
+
                 if self.isClosed():
                     line_path.lineTo(self.points[0])
 
