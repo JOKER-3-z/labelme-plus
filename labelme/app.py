@@ -1304,6 +1304,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.labelList.clearSelection()
         self._noSelectionSlot = False
         self.canvas.loadShapes(shapes, replace=replace)
+        self.canvas.updatePose()
 
     def loadLabels(self, shapes):
         s = []
@@ -1335,7 +1336,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         for key in keys:
                             default_flags[key] = False
             shape.flags = default_flags
-            shape.flags.update(flags)
+            if flags is not None and flags != {}:
+                shape.flags.update(flags)
             shape.other_data = other_data
 
             s.append(shape)

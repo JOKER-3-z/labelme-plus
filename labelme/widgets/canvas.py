@@ -289,10 +289,16 @@ class Canvas(QtWidgets.QWidget):
         # - Highlight vertex
         # Update shape/vertex fill and tooltip value accordingly.
         self.setToolTip(self.tr("Image"))
-        for shape in reversed([s for s in self.shapes if self.isVisible(s)]):
+        point_shape = [s for s in self.shapes if (self.isVisible(s) and s.shape_type != "point")]
+        point_shape.extend([s for s in self.shapes if (self.isVisible(s) and s.shape_type == "point")])
+
+        # for shape in reversed([s for s in self.shapes if self.isVisible(s)]):
+        # self.hShape.highlightClear()
+        # self.selectedShapes.clear()
+        for shape in reversed(point_shape):
             # Look for a nearby vertex to highlight. If that fails,
             # check if we happen to be inside a shape.
-            index = shape.nearestVertex(pos, self.epsilon / self.scale)
+            index = shape.nearestVertex(pos, self.epsilon / self.scale) if shape.shape_type != "point" else None
             index_edge = shape.nearestEdge(pos, self.epsilon / self.scale)
             if index is not None:
                 if self.selectedVertex():
@@ -331,6 +337,7 @@ class Canvas(QtWidgets.QWidget):
                     self.tr("Click & drag to move shape '%s'") % shape.label
                 )
                 self.setStatusTip(self.toolTip())
+                # shape.selected = True
                 self.overrideCursor(CURSOR_GRAB)
                 self.update()
                 break
@@ -512,7 +519,11 @@ class Canvas(QtWidgets.QWidget):
             index, shape = self.hVertex, self.hShape
             shape.highlightVertex(index, shape.MOVE_VERTEX)
         else:
-            for shape in reversed(self.shapes):
+            point_shape = [s for s in self.shapes if (self.isVisible(s) and s.shape_type != "point")]
+            point_shape.extend([s for s in self.shapes if (self.isVisible(s) and s.shape_type == "point")])
+
+            # for shape in reversed([s for s in self.shapes if self.isVisible(s)]):
+            for shape in reversed(point_shape):
                 if self.isVisible(shape) and shape.containsPoint(point):
                     self.setHiding()
                     if shape not in self.selectedShapes:
@@ -691,6 +702,14 @@ class Canvas(QtWidgets.QWidget):
             if item.group_id is not None:
                 maxGroupId = max(item.group_id, maxGroupId)
         return maxGroupId
+
+    def updatePose(self):
+        pose_shapes = [x for x in self.shapes if x.shape_type=="pose"]
+        points = [x for x in self.shapes if x.shape_type == "point" and x.label in pose_define["keypoints"]]
+        for pose_shape in pose_shapes:
+            for point in points:
+                if pose_shape.group_id == point.group_id:
+                    pose_shape.pose_shape.append(point)
 
 
     def finalise(self):

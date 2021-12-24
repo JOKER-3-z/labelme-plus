@@ -279,7 +279,7 @@ class Shape(object):
         return rectangle
 
     def makePath(self):
-        if self.shape_type == "rectangle":
+        if self.shape_type in ["rectangle", "pose"]:
             path = QtGui.QPainterPath()
             if len(self.points) == 2:
                 rectangle = self.getRectFromLine(*self.points)
@@ -289,6 +289,12 @@ class Shape(object):
             if len(self.points) == 2:
                 rectangle = self.getCircleRectFromLine(self.points)
                 path.addEllipse(rectangle)
+        elif self.shape_type == "point":
+            path = QtGui.QPainterPath()
+            point = self.points[0]
+            # if len(self.points) == 2:
+            rectangle = QtCore.QRectF(point.x() - 5, point.y() - 5, 2 * 5, 2 * 5)
+            path.addEllipse(rectangle)
         else:
             path = QtGui.QPainterPath(self.points[0])
             for p in self.points[1:]:
