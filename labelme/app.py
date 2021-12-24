@@ -147,7 +147,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.enablePose = self._config["pose"]
 
         if self.enablePose:
-            for label in pose_define["keypoints"]:
+            labels = pose_define["keypoints"].copy()
+            labels.append("pose")
+            for label in labels:
                 item = self.uniqLabelList.createItemFromLabel(label)
                 self.uniqLabelList.addItem(item)
                 rgb = self._get_rgb_by_label(label)
@@ -1292,6 +1294,8 @@ class MainWindow(QtWidgets.QMainWindow):
         for shape in shapes:
             item = self.labelList.findItemByShape(shape)
             self.labelList.removeItem(item)
+            shape._todelete = True
+
 
     def loadShapes(self, shapes, replace=True):
         self._noSelectionSlot = True

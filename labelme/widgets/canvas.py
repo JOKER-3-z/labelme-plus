@@ -237,6 +237,7 @@ class Canvas(QtWidgets.QWidget):
                 self.line.points = [self.current[0], pos]
                 self.line.close()
                 self.current.pose = {}
+                self.current.label = "pose"
                 start = self.line.points[0]
                 end = self.line.points[1]
                 width = end.x() - start.x()
@@ -698,20 +699,27 @@ class Canvas(QtWidgets.QWidget):
 
         if self.createMode == "pose":
             group_id = self.getMaxGroupId() + 1
+            self.current.group_id = group_id
             for key, location in self.current.pose.items():
                 point = Shape(shape_type="point", group_id=group_id, label=key)
                 point.current = [location]
                 point.points = [location]
                 self.shapes.append(point)
+                self.current.pose_shape.append(point)
                 self.newPoseShape.emit()
-        else:
-            self.shapes.append(self.current)
+            self.current.pose = {}
+
+
+        # else:
+        self.shapes.append(self.current)
         self.storeShapes()
         self.current = None
 
         self.setHiding(False)
         if self.createMode != "pose":
             self.newShape.emit()
+        else:
+            self.newPoseShape.emit()
         self.update()
 
     def closeEnough(self, p1, p2):

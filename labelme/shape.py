@@ -61,7 +61,9 @@ class Shape(object):
         self.shape_type = shape_type
         self.flags = flags
         self.other_data = {}
-        self.pose = {}
+        self.pose = {}   #{"keypoint": QPoint()}
+        self.pose_shape = []
+        self._todelete = False
 
         self._highlightIndex = None
         self._highlightMode = self.NEAR_VERTEX
@@ -162,10 +164,19 @@ class Shape(object):
                 painter.drawText(self.points[0], self.label)
 
             if self.shape_type == "pose":
-                d = self.point_size / self.scale
-                for key, location in self.pose.items():
-                    pose_path.moveTo(location)
-                    pose_path.addEllipse(location, d / 2.0, d / 2.0)
+                # d = self.point_size / self.scale
+                if len(self.pose_shape) > 0:
+                    self.pose.clear()
+                    for shape in self.pose_shape:
+                        if shape._todelete:
+                            self.pose_shape.remove(shape)
+                            continue
+                        self.pose[shape.label] = shape.points[0]
+
+
+                # for key, location in self.pose.items():
+                #     pose_path.moveTo(location)
+                #     pose_path.addEllipse(location, d / 2.0, d / 2.0)
 
                 for connection in pose_define["skeleton"]:
                     point1 = pose_define["keypoints"][connection[0] - 1]
