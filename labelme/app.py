@@ -1167,10 +1167,11 @@ class MainWindow(QtWidgets.QMainWindow):
         shape = item.shape()
         if shape is None:
             return
-        text, flags, group_id = self.labelDialog.popUp(
+        text, flags, group_id,visible = self.labelDialog.popUp(
             text=shape.label,
             flags=shape.flags,
             group_id=shape.group_id,
+            visible=shape.visible
         )
         if text is None:
             return
@@ -1185,6 +1186,7 @@ class MainWindow(QtWidgets.QMainWindow):
         shape.label = text
         shape.flags = flags
         shape.group_id = group_id
+        shape.visible = visible
 
         self._update_shape_color(shape)
         if shape.group_id is None:
@@ -1316,6 +1318,10 @@ class MainWindow(QtWidgets.QMainWindow):
             group_id = shape["group_id"]
             other_data = shape["other_data"]
 
+            confidence = shape["other_data"]["confidence"] if "confidence" in shape["other_data"].keys() else None
+            visible =  shape["other_data"]["visible"] if "visible" in shape["other_data"].keys() else None
+
+
             if not points:
                 # skip point-empty shape
                 continue
@@ -1324,6 +1330,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 label=label,
                 shape_type=shape_type,
                 group_id=group_id,
+                confidence = confidence,
+                visible = visible
             )
             for x, y in points:
                 shape.addPoint(QtCore.QPointF(x, y))
@@ -1463,7 +1471,7 @@ class MainWindow(QtWidgets.QMainWindow):
         group_id = None
         if self._config["display_label_popup"] or not text:
             previous_text = self.labelDialog.edit.text()
-            text, flags, group_id = self.labelDialog.popUp(text)
+            text, flags, group_id, visible = self.labelDialog.popUp(text)
             if not text:
                 self.labelDialog.edit.setText(previous_text)
 
@@ -1479,6 +1487,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.labelList.clearSelection()
             shape = self.canvas.setLastLabel(text, flags)
             shape.group_id = group_id
+            shape.visible = visible
             self.addLabel(shape)
             self.actions.editMode.setEnabled(True)
             self.actions.undoLastPoint.setEnabled(False)

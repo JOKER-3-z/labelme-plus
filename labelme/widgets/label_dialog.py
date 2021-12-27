@@ -55,11 +55,18 @@ class LabelDialog(QtWidgets.QDialog):
         self.edit_group_id.setValidator(
             QtGui.QRegExpValidator(QtCore.QRegExp(r"\d*"), None)
         )
+        self.visible = QtWidgets.QLineEdit()
+        self.visible.setPlaceholderText("visible")
+        # self.visible.setValidator(
+        #     QtGui.QRegExpValidator(QtCore.QRegExp(r"\[0-2]"), None)
+        # )
+
         layout = QtWidgets.QVBoxLayout()
         if show_text_field:
             layout_edit = QtWidgets.QHBoxLayout()
             layout_edit.addWidget(self.edit, 6)
             layout_edit.addWidget(self.edit_group_id, 2)
+            layout_edit.addWidget(self.visible, 2)
             layout.addLayout(layout_edit)
         # buttons
         self.buttonBox = bb = QtWidgets.QDialogButtonBox(
@@ -200,7 +207,13 @@ class LabelDialog(QtWidgets.QDialog):
             return int(group_id)
         return None
 
-    def popUp(self, text=None, move=True, flags=None, group_id=None):
+    def getVisible(self):
+        visible = self.visible.text()
+        if visible:
+            return int(visible)
+        return None
+
+    def popUp(self, text=None, move=True, flags=None, group_id=None, visible=None):
         if self._fit_to_content["row"]:
             self.labelList.setMinimumHeight(
                 self.labelList.sizeHintForRow(0) * self.labelList.count() + 2
@@ -222,6 +235,11 @@ class LabelDialog(QtWidgets.QDialog):
             self.edit_group_id.clear()
         else:
             self.edit_group_id.setText(str(group_id))
+        if visible is None:
+            self.visible.clear()
+        else:
+            self.visible.setText(str(visible))
+
         items = self.labelList.findItems(text, QtCore.Qt.MatchFixedString)
         if items:
             if len(items) != 1:
@@ -233,6 +251,6 @@ class LabelDialog(QtWidgets.QDialog):
         if move:
             self.move(QtGui.QCursor.pos())
         if self.exec_():
-            return self.edit.text(), self.getFlags(), self.getGroupId()
+            return self.edit.text(), self.getFlags(), self.getGroupId(),self.getVisible()
         else:
-            return None, None, None
+            return None, None, None, None

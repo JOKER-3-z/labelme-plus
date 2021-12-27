@@ -333,8 +333,11 @@ class Canvas(QtWidgets.QWidget):
                 self.prevhShape = self.hShape = shape
                 self.prevhEdge = self.hEdge
                 self.hEdge = None
+                str_conf = ""
+                if shape.confidence is not None:
+                    str_conf = "conf:{:.3f}".format(shape.confidence)
                 self.setToolTip(
-                    self.tr("Click & drag to move shape '%s'") % shape.label
+                    self.tr("Click & drag to move shape '%s' %s") %(shape.label, str_conf)
                 )
                 self.setStatusTip(self.toolTip())
                 # shape.selected = True

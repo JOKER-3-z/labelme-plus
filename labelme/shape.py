@@ -6,6 +6,8 @@ from qtpy import QtGui
 
 import labelme.utils
 from pose_config import *
+import imgviz
+LABEL_COLORMAP = imgviz.label_colormap()
 
 
 # TODO(unknown):
@@ -52,6 +54,8 @@ class Shape(object):
         shape_type=None,
         flags=None,
         group_id=None,
+        visible=None,
+        confidence=None,
     ):
         self.label = label
         self.group_id = group_id
@@ -64,6 +68,8 @@ class Shape(object):
         self.pose = {}   #{"keypoint": QPoint()}
         self.pose_shape = []
         self._todelete = False
+        self.confidence = confidence
+        self.visible = visible
 
         self._highlightIndex = None
         self._highlightMode = self.NEAR_VERTEX
@@ -141,7 +147,14 @@ class Shape(object):
             color = (
                 self.select_line_color if self.selected else self.line_color
             )
+            if self.group_id is not None:
+                color = LABEL_COLORMAP[self.group_id %len(LABEL_COLORMAP)]
+                print(color)
+                color = QtGui.QColor(color[0], color[1],color[2])
+
+
             pen = QtGui.QPen(color)
+
             # Try using integer sizes for smoother drawing(?)
             pen.setWidth(max(1, int(round(2.0 / self.scale))))
             painter.setPen(pen)
@@ -152,6 +165,7 @@ class Shape(object):
             line_path = QtGui.QPainterPath()
             vrtx_path = QtGui.QPainterPath()
             pose_path = QtGui.QPainterPath()
+
 
             if self.shape_type in[ "rectangle","pose"]:
                 assert len(self.points) in [1, 2]
@@ -216,7 +230,10 @@ class Shape(object):
 
             painter.drawPath(line_path)
             painter.drawPath(vrtx_path)
-            painter.fillPath(vrtx_path, self._vertex_fill_color)
+            if self.visible is None or self.visible == 2:
+                painter.fillPath(vrtx_path, self._vertex_fill_color)
+            # else:
+            #     print("not visible", self.label)
             painter.drawPath(pose_path)
             if self.fill:
                 color = (
