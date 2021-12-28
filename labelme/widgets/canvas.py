@@ -111,7 +111,8 @@ class Canvas(QtWidgets.QWidget):
             "line",
             "point",
             "linestrip",
-            "pose"
+            "pose",
+            "rectangle_selection"
         ]:
             raise ValueError("Unsupported createMode: %s" % value)
         self._createMode = value
@@ -205,7 +206,7 @@ class Canvas(QtWidgets.QWidget):
         self.restoreCursor()
 
         # Polygon drawing.
-        if self.drawing():
+        if self.drawing() or self.createMode == "rectangle_selection":
             self.line.shape_type = self.createMode
 
             self.overrideCursor(CURSOR_DRAW)
@@ -230,7 +231,7 @@ class Canvas(QtWidgets.QWidget):
             if self.createMode in ["polygon", "linestrip"]:
                 self.line[0] = self.current[-1]
                 self.line[1] = pos
-            elif self.createMode == "rectangle":
+            elif self.createMode in ["rectangle","rectangle_selection"]:
                 self.line.points = [self.current[0], pos]
                 self.line.close()
             elif self.createMode == "pose":
@@ -257,6 +258,16 @@ class Canvas(QtWidgets.QWidget):
             self.repaint()
             self.current.highlightClear()
             return
+        # else:
+        #     self.line.shape_type = self.createMode
+        #
+        #     self.overrideCursor(CURSOR_DRAW)
+        #     if not self.current:
+        #         return
+        #     if self.createMode == "rectangle_selection":
+        #         self.line.points = [self.current[0], pos]
+        #         self.line.close()
+        #     return
 
         # Polygon copy moving.
         if QtCore.Qt.RightButton & ev.buttons():
@@ -378,7 +389,7 @@ class Canvas(QtWidgets.QWidget):
         else:
             pos = self.transformPos(ev.posF())
         if ev.button() == QtCore.Qt.LeftButton:
-            if self.drawing():
+            if self.drawing() or self.createMode == "rectangle_selection":
                 if self.current:
                     # Add point to existing shape.
                     if self.createMode == "polygon":
@@ -400,6 +411,23 @@ class Canvas(QtWidgets.QWidget):
                         self.line[0] = self.current[-1]
                         if int(ev.modifiers()) == QtCore.Qt.ControlModifier:
                             self.finalise()
+                    elif self.createMode == "rectangle_selection":
+                        self.current.points = self.line.points
+                        point_shape = [s for s in self.shapes if (self.isVisible(s) and s.shape_type == "point")]
+                        for shape in reversed(point_shape):
+                            if self.isVisible(shape) and self.current.containsPoint(shape.points[0]):
+                                self.setHiding()
+                                if shape not in self.selectedShapes:
+                                    self.selectionChanged.emit(self.selectedShapes + [shape])
+                                    self.hShapeIsSelected = False
+                                else:
+                                    self.hShapeIsSelected = True
+                                # self.calculateOffsets(point)
+                        # self.deSelectShape()
+                        self.current = None
+
+
+
                 elif not self.outOfPixmap(pos):
                     # Create new shape.
                     self.current = Shape(shape_type=self.createMode)
@@ -437,6 +465,18 @@ class Canvas(QtWidgets.QWidget):
                 self.repaint()
             self.prevPoint = pos
 
+        elif ev.button() == QtCore.Qt.MiddleButton:
+            if not self.outOfPixmap(pos):
+                # Create new shape.
+                self.current = Shape(shape_type="rectangle_selection")
+                self.current.addPoint(pos)
+                self.createMode = "rectangle_selection"
+
+                self.line.points = [pos, pos]
+                self.setHiding()
+                self.drawingPolygon.emit(True)
+                self.update()
+
     def mouseReleaseEvent(self, ev):
         if ev.button() == QtCore.Qt.RightButton:
             menu = self.menus[len(self.selectedShapesCopy) > 0]
@@ -458,6 +498,7 @@ class Canvas(QtWidgets.QWidget):
                     self.selectionChanged.emit(
                         [x for x in self.selectedShapes if x != self.hShape]
                     )
+
 
         if self.movingShape and self.hShape:
             index = self.shapes.index(self.hShape)
@@ -534,11 +575,18 @@ class Canvas(QtWidgets.QWidget):
                             self.selectionChanged.emit(
                                 self.selectedShapes + [shape]
                             )
+                            if shape.shape_type == "pose":
+                                pose_shape = [shape for shape in shape.pose_shape]
+                                self.selectionChanged.emit(
+                                    self.selectedShapes + pose_shape
+                                )
                         else:
                             self.selectionChanged.emit([shape])
                         self.hShapeIsSelected = False
                     else:
                         self.hShapeIsSelected = True
+
+
                     self.calculateOffsets(point)
                     return
         self.deSelectShape()

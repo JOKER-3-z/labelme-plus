@@ -103,7 +103,8 @@ class Shape(object):
             "line",
             "circle",
             "linestrip",
-            "pose"
+            "pose",
+            "rectangle_selection"
         ]:
             raise ValueError("Unexpected shape_type: {}".format(value))
         self._shape_type = value
@@ -167,7 +168,7 @@ class Shape(object):
             pose_path = QtGui.QPainterPath()
 
 
-            if self.shape_type in[ "rectangle","pose"]:
+            if self.shape_type in[ "rectangle","pose", "rectangle_selection"]:
                 assert len(self.points) in [1, 2]
                 if len(self.points) == 2:
                     rectangle = self.getRectFromLine(*self.points)
@@ -175,7 +176,8 @@ class Shape(object):
                 for i in range(len(self.points)):
                     self.drawVertex(vrtx_path, i)
             if self.shape_type == "point":
-                painter.drawText(self.points[0], self.label)
+                short_label = "".join([x[0] for x in self.label.split("_")])
+                painter.drawText(self.points[0], short_label)
 
             if self.shape_type == "pose":
                 # d = self.point_size / self.scale
@@ -296,7 +298,7 @@ class Shape(object):
         return rectangle
 
     def makePath(self):
-        if self.shape_type in ["rectangle", "pose"]:
+        if self.shape_type in ["rectangle", "pose", "rectangle_selection"]:
             path = QtGui.QPainterPath()
             if len(self.points) == 2:
                 rectangle = self.getRectFromLine(*self.points)

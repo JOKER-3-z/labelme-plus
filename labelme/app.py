@@ -149,6 +149,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.enablePose:
             labels = pose_define["keypoints"].copy()
             labels.append("pose")
+            labels.append("iscrowd")
             for label in labels:
                 item = self.uniqLabelList.createItemFromLabel(label)
                 self.uniqLabelList.addItem(item)
@@ -2084,9 +2085,10 @@ class MainWindow(QtWidgets.QMainWindow):
             "You are about to permanently delete {} polygons, "
             "proceed anyway?"
         ).format(len(self.canvas.selectedShapes))
-        if yes == QtWidgets.QMessageBox.warning(
-            self, self.tr("Attention"), msg, yes | no, yes
-        ):
+        # if yes == QtWidgets.QMessageBox.warning(
+        #     self, self.tr("Attention"), msg, yes | no, yes
+        # ):
+        if True:
             self.remLabels(self.canvas.deleteSelected())
             self.setDirty()
             if self.noShapes():
