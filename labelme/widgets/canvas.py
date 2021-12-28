@@ -7,6 +7,7 @@ from labelme.shape import Shape
 import labelme.utils
 
 from pose_config import *
+import baidu
 
 
 # TODO(unknown):
@@ -112,7 +113,9 @@ class Canvas(QtWidgets.QWidget):
             "point",
             "linestrip",
             "pose",
-            "rectangle_selection"
+            "rectangle_selection",
+            "pose_by_baidu"
+
         ]:
             raise ValueError("Unsupported createMode: %s" % value)
         self._createMode = value
@@ -231,7 +234,7 @@ class Canvas(QtWidgets.QWidget):
             if self.createMode in ["polygon", "linestrip"]:
                 self.line[0] = self.current[-1]
                 self.line[1] = pos
-            elif self.createMode in ["rectangle","rectangle_selection"]:
+            elif self.createMode in ["rectangle","rectangle_selection", "pose_by_baidu"]:
                 self.line.points = [self.current[0], pos]
                 self.line.close()
             elif self.createMode == "pose":
@@ -401,7 +404,7 @@ class Canvas(QtWidgets.QWidget):
                         assert len(self.current.points) == 1
                         self.current.points = self.line.points
                         self.finalise()
-                    elif self.createMode == "pose":
+                    elif self.createMode in ["pose","pose_by_baidu"]:
                         assert len(self.current.points) == 1
                         self.current.points = self.line.points
                         self.finalise()
@@ -767,6 +770,60 @@ class Canvas(QtWidgets.QWidget):
         assert self.current
         self.current.close()
 
+        if self.createMode == "pose_by_baidu":
+            pixmap = self.pixmap.copy(self.current.points[0].x(), self.current.points[0].y(),
+                                        self.current.points[1].x() - self.current.points[0].x(),
+                                        self.current.points[1].y() - self.current.points[0].y(),
+                                      )
+
+            buffer = QtCore.QBuffer()
+            buffer.open(QtCore.QIODevice.WriteOnly)
+            pixmap.save(buffer, "jpg")
+            encoded = buffer.data()   #.toBase64()
+            # with open("tmp.jpg", 'wb') as fp:
+            #     fp.write(encoded)
+            baidu_anno = baidu.get_annoatation_from_baidu(encoded)
+            print(baidu_anno)
+
+            start = self.line.points[0]
+            end = self.line.points[1]
+            width = end.x() - start.x()
+            height = end.y() - start.y()
+            if "person_info" not in baidu_anno.keys():
+                return
+            for idx, person in enumerate(baidu_anno["person_info"]):
+                # self.current.pose[key] = QtCore.QPoint(int(tpoint[0] * width + start.x()),
+                #                                        int(tpoint[1] * height + start.y()))
+                group_id = self.getMaxGroupId() + 1
+                current = Shape(shape_type="pose", group_id=group_id)
+                current.pose = {}
+                current.label = "pose"
+                bbox = person["location"]
+                top_left = QtCore.QPoint(bbox["left"] + start.x(),bbox["top"] + start.y())
+                bot_right = QtCore.QPoint(bbox["left"] + start.x() + bbox["width"],bbox["top"] + start.y() + bbox["height"])
+                current.points = [top_left, bot_right]
+
+                for part_name, info in person["body_parts"].items():
+                    if part_name in pose_define["keypoints"] and info["score"] > baidu.visible_threshold:
+                        point = Shape(shape_type="point", group_id=group_id, label=part_name, confidence=info["score"])
+                        location = QtCore.QPoint(info["x"] + start.x(), info["y"] + start.y())
+                        point.current = [location]
+                        point.points = [location]
+                        self.shapes.append(point)
+                        current.pose_shape.append(point)
+                        self.newPoseShape.emit()
+
+                self.shapes.append(current)
+                self.storeShapes()
+                self.setHiding(False)
+
+                self.newPoseShape.emit()
+                self.update()
+            return
+
+
+
+
         if self.createMode == "pose":
             group_id = self.getMaxGroupId() + 1
             self.current.group_id = group_id
@@ -778,6 +835,11 @@ class Canvas(QtWidgets.QWidget):
                 self.current.pose_shape.append(point)
                 self.newPoseShape.emit()
             self.current.pose = {}
+
+
+
+
+
 
 
         # else:

@@ -370,6 +370,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Start drawing pose"),
             enabled=False,
         )
+        createPoseByBaiduMode = action(
+            self.tr("Create Pose by baidu"),
+            lambda: self.toggleDrawMode(False, createMode="pose_by_baidu"),
+            shortcuts["create_pose_by_baidu"],
+            "objects",
+            self.tr("Start drawing pose"),
+            enabled=False,
+        )
         createCircleMode = action(
             self.tr("Create Circle"),
             lambda: self.toggleDrawMode(False, createMode="circle"),
@@ -636,6 +644,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createRectangleMode=createRectangleMode,
             createPoseTemplate=createPoseTemplate,
             createPoseMode=createPoseMode,
+            createPoseByBaiduMode=createPoseByBaiduMode,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -671,6 +680,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createMode,
                 createRectangleMode,
                 createPoseMode,
+                createPoseByBaiduMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -691,6 +701,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 createPoseTemplate,
                 createPoseMode,
+                createPoseByBaiduMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -905,7 +916,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         if self.enablePose:
             actions = [x for x in list(actions)]
-            actions.extend([self.actions.createPoseTemplate, self.actions.createPoseMode])
+            actions.extend([self.actions.createPoseTemplate, self.actions.createPoseMode, self.actions.createPoseByBaiduMode])
             actions = tuple(actions)
 
         utils.addActions(self.menus.edit, actions + self.actions.editMenu)
@@ -934,6 +945,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.createMode.setEnabled(True)
         self.actions.createRectangleMode.setEnabled(True)
         self.actions.createPoseMode.setEnabled(True)
+        self.actions.createPoseByBaiduMode.setEnabled(True)
         self.actions.createCircleMode.setEnabled(True)
         self.actions.createLineMode.setEnabled(True)
         self.actions.createPointMode.setEnabled(True)
@@ -1055,6 +1067,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createMode.setEnabled(True)
             self.actions.createRectangleMode.setEnabled(True)
             self.actions.createPoseMode.setEnabled(True)
+            self.actions.createPoseByBaiduMode.setEnabled(True)
             self.actions.createCircleMode.setEnabled(True)
             self.actions.createLineMode.setEnabled(True)
             self.actions.createPointMode.setEnabled(True)
@@ -1063,6 +1076,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if createMode == "polygon":
                 self.actions.createMode.setEnabled(False)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1071,6 +1085,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "rectangle":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(False)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1079,6 +1094,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "line":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(False)
@@ -1087,6 +1103,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "point":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1095,6 +1112,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "circle":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(False)
                 self.actions.createLineMode.setEnabled(True)
@@ -1103,6 +1121,7 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "linestrip":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1111,7 +1130,17 @@ class MainWindow(QtWidgets.QMainWindow):
             elif createMode == "pose":
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(False)
+                self.actions.createCircleMode.setEnabled(True)
+                self.actions.createLineMode.setEnabled(True)
+                self.actions.createPointMode.setEnabled(True)
+                self.actions.createLineStripMode.setEnabled(True)
+            elif createMode == "pose_by_baidu":
+                self.actions.createMode.setEnabled(True)
+                self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(False)
+                self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
                 self.actions.createPointMode.setEnabled(True)
@@ -2080,11 +2109,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     action.setEnabled(False)
 
     def deleteSelectedShape(self):
-        yes, no = QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No
-        msg = self.tr(
-            "You are about to permanently delete {} polygons, "
-            "proceed anyway?"
-        ).format(len(self.canvas.selectedShapes))
+        # yes, no = QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No
+        # msg = self.tr(
+        #     "You are about to permanently delete {} polygons, "
+        #     "proceed anyway?"
+        # ).format(len(self.canvas.selectedShapes))
         # if yes == QtWidgets.QMessageBox.warning(
         #     self, self.tr("Attention"), msg, yes | no, yes
         # ):

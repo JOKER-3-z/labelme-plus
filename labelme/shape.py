@@ -104,7 +104,8 @@ class Shape(object):
             "circle",
             "linestrip",
             "pose",
-            "rectangle_selection"
+            "rectangle_selection",
+            "pose_by_baidu"
         ]:
             raise ValueError("Unexpected shape_type: {}".format(value))
         self._shape_type = value
@@ -168,7 +169,7 @@ class Shape(object):
             pose_path = QtGui.QPainterPath()
 
 
-            if self.shape_type in[ "rectangle","pose", "rectangle_selection"]:
+            if self.shape_type in[ "rectangle","pose", "rectangle_selection", "pose_by_baidu"]:
                 assert len(self.points) in [1, 2]
                 if len(self.points) == 2:
                     rectangle = self.getRectFromLine(*self.points)
@@ -188,11 +189,6 @@ class Shape(object):
                             self.pose_shape.remove(shape)
                             continue
                         self.pose[shape.label] = shape.points[0]
-
-
-                # for key, location in self.pose.items():
-                #     pose_path.moveTo(location)
-                #     pose_path.addEllipse(location, d / 2.0, d / 2.0)
 
                 for connection in pose_define["skeleton"]:
                     point1 = pose_define["keypoints"][connection[0] - 1]
@@ -298,7 +294,7 @@ class Shape(object):
         return rectangle
 
     def makePath(self):
-        if self.shape_type in ["rectangle", "pose", "rectangle_selection"]:
+        if self.shape_type in ["rectangle", "pose", "rectangle_selection", "pose_by_baidu"]:
             path = QtGui.QPainterPath()
             if len(self.points) == 2:
                 rectangle = self.getRectFromLine(*self.points)
