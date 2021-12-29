@@ -1,3 +1,6 @@
 [submodule "github2pypi"]
 	path = github2pypi
 	url = https://github.com/wkentaro/github2pypi.git
+[submodule "EISeg"]
+	path = EISeg
+	url = https://github.com/PaddleCV-SIG/EISeg.git
