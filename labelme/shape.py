@@ -105,7 +105,8 @@ class Shape(object):
             "linestrip",
             "pose",
             "rectangle_selection",
-            "pose_by_baidu"
+            "pose_by_baidu",
+            "seg_by_eiseg"
         ]:
             raise ValueError("Unexpected shape_type: {}".format(value))
         self._shape_type = value

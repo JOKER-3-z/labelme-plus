@@ -33,6 +33,9 @@ class Canvas(QtWidgets.QWidget):
     shapeMoved = QtCore.Signal()
     drawingPolygon = QtCore.Signal(bool)
     vertexSelected = QtCore.Signal(bool)
+    segRequest = QtCore.Signal(int, int, bool)
+
+
 
     CREATE, EDIT = 0, 1
     CREATE, EDIT = 0, 1
@@ -114,7 +117,8 @@ class Canvas(QtWidgets.QWidget):
             "linestrip",
             "pose",
             "rectangle_selection",
-            "pose_by_baidu"
+            "pose_by_baidu",
+            "seg_by_eiseg"
 
         ]:
             raise ValueError("Unsupported createMode: %s" % value)
@@ -391,6 +395,12 @@ class Canvas(QtWidgets.QWidget):
             pos = self.transformPos(ev.localPos())
         else:
             pos = self.transformPos(ev.posF())
+
+        if self.createMode == "seg_by_eiseg" and ev.button() in [QtCore.Qt.LeftButton, QtCore.Qt.RightButton]:
+            isLeft = True if  ev.button() == QtCore.Qt.LeftButton else False
+            self.segRequest.emit(pos.x(), pos.y(), isLeft)
+            return
+
         if ev.button() == QtCore.Qt.LeftButton:
             if self.drawing() or self.createMode == "rectangle_selection":
                 if self.current:

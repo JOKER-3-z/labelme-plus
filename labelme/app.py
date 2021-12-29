@@ -34,6 +34,10 @@ from labelme.widgets import ZoomWidget
 from pose_config import *
 import json
 
+from eiseg.controller import InteractiveController
+import cv2
+import numpy as np
+
 # FIXME
 # - [medium] Set max zoom value to something big enough for FitWidth/Window
 
@@ -42,6 +46,21 @@ import json
 
 
 LABEL_COLORMAP = imgviz.label_colormap()
+
+class ModelThread(QtCore.QThread):
+    _signal = QtCore.Signal(dict)
+
+    def __init__(self, controller, param_path):
+        super().__init__()
+        self.controller = controller
+        self.param_path = param_path
+
+    def run(self):
+        success, res = self.controller.setModel(self.param_path, False)
+        self._signal.emit(
+            {"success": success, "res": res, "param_path": self.param_path}
+        )
+
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -378,6 +397,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tr("Start drawing pose"),
             enabled=False,
         )
+        createSegByEISegMode = action(
+            self.tr("Create Seg by EISeg"),
+            lambda: self.toggleDrawMode(False, createMode="seg_by_eiseg"),
+            shortcuts["create_seg_by_eiseg"],
+            "objects",
+            self.tr("Start drawing seg by EISeg"),
+            enabled=False,
+        )
         createCircleMode = action(
             self.tr("Create Circle"),
             lambda: self.toggleDrawMode(False, createMode="circle"),
@@ -645,6 +672,7 @@ class MainWindow(QtWidgets.QMainWindow):
             createPoseTemplate=createPoseTemplate,
             createPoseMode=createPoseMode,
             createPoseByBaiduMode=createPoseByBaiduMode,
+            createSegByEISegMode=createSegByEISegMode,
             createCircleMode=createCircleMode,
             createLineMode=createLineMode,
             createPointMode=createPointMode,
@@ -681,6 +709,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createRectangleMode,
                 createPoseMode,
                 createPoseByBaiduMode,
+                createSegByEISegMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -702,6 +731,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 createPoseTemplate,
                 createPoseMode,
                 createPoseByBaiduMode,
+                createSegByEISegMode,
                 createCircleMode,
                 createLineMode,
                 createPointMode,
@@ -873,9 +903,47 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.populateModeActions()
 
+        self.predictor_params = {
+            "brs_mode": "NoBRS",
+            "with_flip": False,
+            "zoom_in_params": {
+                "skip_clicks": -1,
+                "target_size": (400, 400),
+                "expansion_ratio": 1.4,
+            },
+            "predictor_params": {
+                "net_clicks_limit": None,
+                "max_size": 800,
+                "with_mask": True,
+            },
+        }
+
+        self.controller = InteractiveController(
+            predictor_params=self.predictor_params,
+            prob_thresh=0.5   ##self.segThresh,
+        )
+        param_path = "weights/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human.pdiparams"
+        param_path = os.path.join(".", param_path)
+        param_path = os.path.abspath(param_path)
+        self.load_thread = ModelThread(self.controller, param_path)
+        self.load_thread.start()
+        self.opacity = 0.5
+        self.clickRadius = 3
+
+        self.canvas.segRequest.connect(self.canvasClick)
+        label = {"id": 0,
+         "name": "person",
+         "color": [255, 0, 0]}
+        self.controller.setLabelList(json.dumps([label]))
+        self.controller.setCurrLabelIdx(1)
+
         # self.firstStart = True
         # if self.firstStart:
         #    QWhatsThis.enterWhatsThisMode()
+
+
+
+
 
     def menu(self, title, actions=None):
         menu = self.menuBar().addMenu(title)
@@ -916,7 +984,8 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         if self.enablePose:
             actions = [x for x in list(actions)]
-            actions.extend([self.actions.createPoseTemplate, self.actions.createPoseMode, self.actions.createPoseByBaiduMode])
+            actions.extend([self.actions.createPoseTemplate, self.actions.createPoseMode, \
+                            self.actions.createPoseByBaiduMode, self.actions.createSegByEISegMode])
             actions = tuple(actions)
 
         utils.addActions(self.menus.edit, actions + self.actions.editMenu)
@@ -946,6 +1015,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.actions.createRectangleMode.setEnabled(True)
         self.actions.createPoseMode.setEnabled(True)
         self.actions.createPoseByBaiduMode.setEnabled(True)
+        self.actions.createSegByEISegMode.setEnabled(True)
         self.actions.createCircleMode.setEnabled(True)
         self.actions.createLineMode.setEnabled(True)
         self.actions.createPointMode.setEnabled(True)
@@ -1068,6 +1138,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actions.createRectangleMode.setEnabled(True)
             self.actions.createPoseMode.setEnabled(True)
             self.actions.createPoseByBaiduMode.setEnabled(True)
+            self.actions.createSegByEISegMode.setEnabled(True)
             self.actions.createCircleMode.setEnabled(True)
             self.actions.createLineMode.setEnabled(True)
             self.actions.createPointMode.setEnabled(True)
@@ -1077,6 +1148,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(False)
                 self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1086,6 +1158,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(False)
                 self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1095,6 +1168,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(False)
@@ -1104,6 +1178,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1113,6 +1188,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(False)
                 self.actions.createLineMode.setEnabled(True)
@@ -1122,6 +1198,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1131,6 +1208,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(True)
                 self.actions.createPoseMode.setEnabled(False)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1140,6 +1218,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.actions.createMode.setEnabled(True)
                 self.actions.createRectangleMode.setEnabled(True)
                 self.actions.createPoseByBaiduMode.setEnabled(False)
+                self.actions.createSegByEISegMode.setEnabled(True)
+                self.actions.createPoseMode.setEnabled(True)
+                self.actions.createCircleMode.setEnabled(True)
+                self.actions.createLineMode.setEnabled(True)
+                self.actions.createPointMode.setEnabled(True)
+                self.actions.createLineStripMode.setEnabled(True)
+            elif createMode == "seg_by_eiseg":
+                self.actions.createMode.setEnabled(True)
+                self.actions.createRectangleMode.setEnabled(True)
+                self.actions.createPoseByBaiduMode.setEnabled(True)
+                self.actions.createSegByEISegMode.setEnabled(False)
                 self.actions.createPoseMode.setEnabled(True)
                 self.actions.createCircleMode.setEnabled(True)
                 self.actions.createLineMode.setEnabled(True)
@@ -1705,6 +1794,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if self._config["keep_prev"]:
             prev_shapes = self.canvas.shapes
         self.canvas.loadPixmap(QtGui.QPixmap.fromImage(image))
+        # self.controller.setImage(utils.QImageToArray(image))
+        image = cv2.imdecode(np.fromfile(self.imagePath, dtype=np.uint8), 1)
+        image = image[:, :, ::-1]  # BGR转RGB
+        self.controller.setImage(image)
+
+
         flags = {k: False for k in self._config["flags"] or []}
         if self.labelFile:
             self.loadLabels(self.labelFile.shapes)
@@ -2240,3 +2335,31 @@ class MainWindow(QtWidgets.QMainWindow):
                     images.append(relativePath)
         images.sort(key=lambda x: x.lower())
         return images
+
+    def canvasClick(self, x, y, isLeft):
+        c = self.controller
+        if c.image is None:
+            return
+        if not c.inImage(x, y):
+            return
+        if not c.modelSet:
+            self.warn(self.tr("未选择模型", self.tr("尚未选择模型，请先在右上角选择模型")))
+            return
+
+        res = self.controller.addClick(x, y, isLeft)
+        print(res)
+        self.updateImage()
+
+    def updateImage(self, reset_canvas=False):
+        if not self.controller:
+            return
+        image = self.controller.get_visualization(
+            alpha_blend=self.opacity,
+            click_radius=self.clickRadius,
+        )
+        height, width, _ = image.shape
+        bytesPerLine = 3 * width
+        image = QtGui.QImage(image.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
+        # if reset_canvas:
+        #     self.resetZoom(width, height)
+        self.canvas.loadPixmap(QtGui.QPixmap(image))

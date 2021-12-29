@@ -107,3 +107,4 @@ shortcuts:
   toggle_keep_prev_mode: Ctrl+P
   remove_selected_point: [Meta+H, Backspace]
   create_pose_by_baidu: Ctrl+B
+  create_seg_by_eiseg: Ctrl+E
