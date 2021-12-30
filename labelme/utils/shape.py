@@ -110,3 +110,37 @@ def masks_to_bboxes(masks):
         bboxes.append((y1, x1, y2, x2))
     bboxes = np.asarray(bboxes, dtype=np.float32)
     return bboxes
+
+def xywh_to_yxyx(roi):
+    return [roi[1], roi[0], roi[1] + roi[3], roi[0] + roi[2]]
+
+
+def calIOU(rec1, rec2):
+    """
+    computing IoU
+    :param rec1: (x, y, w, h), which reflects
+            (top, left, bottom, right)
+    :param rec2: (x, y, w, h)
+    :return: scala value of IoU
+    """
+    rec1 = xywh_to_yxyx(rec1)
+    rec2 = xywh_to_yxyx(rec2)
+    # 计算每个矩形的面积
+    S_rec1 = (rec1[2] - rec1[0]) * (rec1[3] - rec1[1])
+    S_rec2 = (rec2[2] - rec2[0]) * (rec2[3] - rec2[1])
+
+    # computing the sum_area
+    sum_area = S_rec1 + S_rec2
+
+    # find the each edge of intersect rectangle
+    left_line = max(rec1[1], rec2[1])
+    right_line = min(rec1[3], rec2[3])
+    top_line = max(rec1[0], rec2[0])
+    bottom_line = min(rec1[2], rec2[2])
+
+    # judge if there is an intersect
+    if left_line >= right_line or top_line >= bottom_line:
+        return 0
+    else:
+        intersect = (right_line - left_line) * (bottom_line - top_line)
+        return intersect* 1.0 /(S_rec1 + S_rec2 -intersect)

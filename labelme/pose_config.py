@@ -7,6 +7,8 @@ pose_define = {
 "keypoints": ["nose", "left_eye", "right_eye", "left_ear", "right_ear", "left_shoulder", "right_shoulder",\
               "left_elbow", "right_elbow", "left_wrist", "right_wrist", "left_hip", "right_hip", "left_knee", \
               "right_knee", "left_ankle", "right_ankle"],
+"keypoints_priority":["nose", "left_ear", "right_ear", "left_shoulder", "right_shoulder",\
+              "left_hip", "right_hip"],
 "skeleton":[[16, 14], [14, 12], [17, 15], [15, 13], [12, 13], [6, 12], [7, 13], [6, 7], [6, 8], [7, 9], \
             [8, 10], [9, 11], [2, 3], [1, 2], [1, 3], [2, 4], [3, 5], [4, 6], [5, 7]],
 "location": {"nose": [0.48337208483055016, 0.08411035446132355], "left_eye": [0.5168392869724511, 0.06839532041208311], \

@@ -9,6 +9,14 @@ import labelme.utils
 from pose_config import *
 import baidu
 
+from eiseg.controller import InteractiveController
+
+
+import os
+import json
+import cv2
+import numpy as np
+from utils import calIOU
 
 # TODO(unknown):
 # - [maybe] Find optimal epsilon value.
@@ -21,6 +29,20 @@ CURSOR_MOVE = QtCore.Qt.ClosedHandCursor
 CURSOR_GRAB = QtCore.Qt.OpenHandCursor
 
 MOVE_SPEED = 5.0
+
+class ModelThread(QtCore.QThread):
+    _signal = QtCore.Signal(dict)
+
+    def __init__(self, controller, param_path):
+        super().__init__()
+        self.controller = controller
+        self.param_path = param_path
+
+    def run(self):
+        success, res = self.controller.setModel(self.param_path, False)
+        self._signal.emit(
+            {"success": success, "res": res, "param_path": self.param_path}
+        )
 
 
 class Canvas(QtWidgets.QWidget):
@@ -95,6 +117,44 @@ class Canvas(QtWidgets.QWidget):
         # Set widget options.
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.WheelFocus)
+
+        self.predictor_params = {
+            "brs_mode": "NoBRS",
+            "with_flip": False,
+            "zoom_in_params": {
+                "skip_clicks": -1,
+                "target_size": (400, 400),
+                "expansion_ratio": 1.4,
+            },
+            "predictor_params": {
+                "net_clicks_limit": None,
+                "max_size": 800,
+                "with_mask": True,
+            },
+        }
+
+        self.controller = InteractiveController(
+            predictor_params=self.predictor_params,
+            prob_thresh=0.5  ##self.segThresh,
+        )
+        param_path = "weights/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human.pdiparams"
+        param_path = os.path.join(".", param_path)
+        param_path = os.path.abspath(param_path)
+        self.load_thread = ModelThread(self.controller, param_path)
+        self.load_thread.start()
+        self.opacity = 0.5
+        self.clickRadius = 3
+
+        self.segRequest.connect(self.canvasClick)
+        label = {"id": 0,
+                 "name": "person",
+                 "color": [255, 0, 0]}
+        self.controller.setLabelList(json.dumps([label]))
+        self.controller.setCurrLabelIdx(1)
+        self.controller.filterLargestCC(True)
+
+
+
 
     def fillDrawing(self):
         return self._fill_drawing
@@ -491,7 +551,7 @@ class Canvas(QtWidgets.QWidget):
                 self.update()
 
     def mouseReleaseEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
+        if ev.button() == QtCore.Qt.RightButton and self.createMode != "seg_by_eiseg":
             menu = self.menus[len(self.selectedShapesCopy) > 0]
             self.restoreCursor()
             if (
@@ -718,9 +778,10 @@ class Canvas(QtWidgets.QWidget):
         Shape.scale = self.scale
 
         for shape in self.shapes:
-            if (shape.selected or not self._hideBackround) and self.isVisible(
-                shape
-            ):
+            # if (shape.selected or not self._hideBackround) and self.isVisible(
+            #     shape
+            # ):
+            if (not self._hideBackround) and self.isVisible(shape):
                 shape.fill = shape.selected or shape == self.hShape
                 shape.paint(p)
         if self.current:
@@ -777,9 +838,51 @@ class Canvas(QtWidgets.QWidget):
 
 
     def finalise(self):
+        if self.createMode == "seg_by_eiseg":
+            print("to finish object")
+            if not self.controller:  # or self.image is None:
+                return
+            current_mask, curr_polygon = self.controller.finishObject(
+                building=False)
+
+            print(curr_polygon)
+            if curr_polygon is None:
+                return
+            if len(curr_polygon) > 0:
+                group_id = None
+                bbox = cv2.boundingRect(np.array(curr_polygon[0]))
+                # bbox = [bbox[1], bbox[0], bbox[1] + bbox[3], bbox[0] + bbox[2]]
+                max_iou = 0
+                for shape in [pose for pose in self.shapes if pose.label == "pose"]:
+                    bbox_shape = [shape.points[0].x(),shape.points[0].y(),
+                                  shape.points[1].x() - shape.points[0].x(),
+                                  shape.points[1].y() - shape.points[0].y()
+                                  ]
+                    iou = calIOU(bbox, bbox_shape)
+                    if  iou > 0.05 and iou > max_iou:
+                        group_id = shape.group_id
+                        max_iou = iou
+                        # break
+
+
+
+
+                current = Shape(shape_type="polygon", group_id=group_id, label="person")
+                for point in curr_polygon[0]:
+                    current.points.append(QtCore.QPoint(int(point[0]), int(point[1])))
+
+            self.shapes.append(current)
+            self.storeShapes()
+            self.setHiding(False)
+
+            self.newPoseShape.emit()
+            self.update()
+
+            # self.updateImage()
+            return
+
         assert self.current
         self.current.close()
-
         if self.createMode == "pose_by_baidu":
             pixmap = self.pixmap.copy(self.current.points[0].x(), self.current.points[0].y(),
                                         self.current.points[1].x() - self.current.points[0].x(),
@@ -814,7 +917,8 @@ class Canvas(QtWidgets.QWidget):
                 current.points = [top_left, bot_right]
 
                 for part_name, info in person["body_parts"].items():
-                    if part_name in pose_define["keypoints"] and info["score"] > baidu.visible_threshold:
+                    if part_name in pose_define["keypoints_priority"] or \
+                            (part_name in pose_define["keypoints"] and info["score"] > baidu.visible_threshold):
                         point = Shape(shape_type="point", group_id=group_id, label=part_name, confidence=info["score"])
                         location = QtCore.QPoint(info["x"] + start.x(), info["y"] + start.y())
                         point.current = [location]
@@ -829,6 +933,7 @@ class Canvas(QtWidgets.QWidget):
 
                 self.newPoseShape.emit()
                 self.update()
+                self.current = None
             return
 
 
@@ -976,6 +1081,13 @@ class Canvas(QtWidgets.QWidget):
     def keyPressEvent(self, ev):
         modifiers = ev.modifiers()
         key = ev.key()
+
+        if self.createMode == "seg_by_eiseg" and key == QtCore.Qt.Key_Space:
+            self.finalise()
+            return
+
+
+
         if self.drawing():
             if key == QtCore.Qt.Key_Escape and self.current:
                 self.current = None
@@ -1081,3 +1193,31 @@ class Canvas(QtWidgets.QWidget):
         self.pixmap = None
         self.shapesBackups = []
         self.update()
+
+    def canvasClick(self, x, y, isLeft):
+        c = self.controller
+        if c.image is None:
+            return
+        if not c.inImage(x, y):
+            return
+        if not c.modelSet:
+            self.warn(self.tr("未选择模型", self.tr("尚未选择模型，请先在右上角选择模型")))
+            return
+
+        res = self.controller.addClick(x, y, isLeft)
+        # print(res)
+        self.updateImage()
+
+    def updateImage(self, reset_canvas=False):
+        if not self.controller:
+            return
+        image = self.controller.get_visualization(
+            alpha_blend=self.opacity,
+            click_radius=self.clickRadius,
+        )
+        height, width, _ = image.shape
+        bytesPerLine = 3 * width
+        image = QtGui.QImage(image.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
+        # if reset_canvas:
+        #     self.resetZoom(width, height)
+        self.loadPixmap(QtGui.QPixmap(image), False)

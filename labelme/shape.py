@@ -151,8 +151,8 @@ class Shape(object):
                 self.select_line_color if self.selected else self.line_color
             )
             if self.group_id is not None:
-                color = LABEL_COLORMAP[self.group_id %len(LABEL_COLORMAP)]
-                print(color)
+                color = LABEL_COLORMAP[(self.group_id + 30)%len(LABEL_COLORMAP)]
+                # print(color)
                 color = QtGui.QColor(color[0], color[1],color[2])
 
 

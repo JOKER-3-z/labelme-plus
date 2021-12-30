@@ -33,8 +33,6 @@ from labelme.widgets import UniqueLabelQListWidget
 from labelme.widgets import ZoomWidget
 from pose_config import *
 import json
-
-from eiseg.controller import InteractiveController
 import cv2
 import numpy as np
 
@@ -46,21 +44,6 @@ import numpy as np
 
 
 LABEL_COLORMAP = imgviz.label_colormap()
-
-class ModelThread(QtCore.QThread):
-    _signal = QtCore.Signal(dict)
-
-    def __init__(self, controller, param_path):
-        super().__init__()
-        self.controller = controller
-        self.param_path = param_path
-
-    def run(self):
-        success, res = self.controller.setModel(self.param_path, False)
-        self._signal.emit(
-            {"success": success, "res": res, "param_path": self.param_path}
-        )
-
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -903,39 +886,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.populateModeActions()
 
-        self.predictor_params = {
-            "brs_mode": "NoBRS",
-            "with_flip": False,
-            "zoom_in_params": {
-                "skip_clicks": -1,
-                "target_size": (400, 400),
-                "expansion_ratio": 1.4,
-            },
-            "predictor_params": {
-                "net_clicks_limit": None,
-                "max_size": 800,
-                "with_mask": True,
-            },
-        }
 
-        self.controller = InteractiveController(
-            predictor_params=self.predictor_params,
-            prob_thresh=0.5   ##self.segThresh,
-        )
-        param_path = "weights/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human.pdiparams"
-        param_path = os.path.join(".", param_path)
-        param_path = os.path.abspath(param_path)
-        self.load_thread = ModelThread(self.controller, param_path)
-        self.load_thread.start()
-        self.opacity = 0.5
-        self.clickRadius = 3
-
-        self.canvas.segRequest.connect(self.canvasClick)
-        label = {"id": 0,
-         "name": "person",
-         "color": [255, 0, 0]}
-        self.controller.setLabelList(json.dumps([label]))
-        self.controller.setCurrLabelIdx(1)
 
         # self.firstStart = True
         # if self.firstStart:
@@ -1797,7 +1748,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # self.controller.setImage(utils.QImageToArray(image))
         image = cv2.imdecode(np.fromfile(self.imagePath, dtype=np.uint8), 1)
         image = image[:, :, ::-1]  # BGR转RGB
-        self.controller.setImage(image)
+        self.canvas.controller.setImage(image)
 
 
         flags = {k: False for k in self._config["flags"] or []}
@@ -2336,30 +2287,3 @@ class MainWindow(QtWidgets.QMainWindow):
         images.sort(key=lambda x: x.lower())
         return images
 
-    def canvasClick(self, x, y, isLeft):
-        c = self.controller
-        if c.image is None:
-            return
-        if not c.inImage(x, y):
-            return
-        if not c.modelSet:
-            self.warn(self.tr("未选择模型", self.tr("尚未选择模型，请先在右上角选择模型")))
-            return
-
-        res = self.controller.addClick(x, y, isLeft)
-        print(res)
-        self.updateImage()
-
-    def updateImage(self, reset_canvas=False):
-        if not self.controller:
-            return
-        image = self.controller.get_visualization(
-            alpha_blend=self.opacity,
-            click_radius=self.clickRadius,
-        )
-        height, width, _ = image.shape
-        bytesPerLine = 3 * width
-        image = QtGui.QImage(image.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
-        # if reset_canvas:
-        #     self.resetZoom(width, height)
-        self.canvas.loadPixmap(QtGui.QPixmap(image))
