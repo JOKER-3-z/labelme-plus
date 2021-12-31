@@ -3,6 +3,7 @@ LABEL maintainer "Kentaro Wada <www.kentaro.wada@gmail.com>"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+ENV LANG C.UTF-8
 RUN \
   apt-get update -qq && \
   apt-get install -qq -y \
@@ -15,11 +16,10 @@ RUN \
 
 RUN python3 -m pip install -U pip setuptools wheel
 
-RUN python3 -m pip install -v git+https://github.com/wkentaro/labelme.git
+RUN python3 -m pip install -v git+http://code.raintai.com:8090/ATA/labelPose.git@pose
 
-RUN mkdir /root/workdir
 
-ENV LANG en-US
+
 
 WORKDIR /root/workdir
 ENTRYPOINT [ "labelme" ]
