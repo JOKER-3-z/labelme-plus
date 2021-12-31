@@ -7,7 +7,7 @@ from labelme.shape import Shape
 import labelme.utils
 
 from labelme.pose_config import *
-import labelme.baidu
+from labelme.baidu import get_annoatation_from_baidu, visible_threshold
 
 from eiseg.controller import InteractiveController
 
@@ -896,7 +896,7 @@ class Canvas(QtWidgets.QWidget):
             encoded = buffer.data()   #.toBase64()
             # with open("tmp.jpg", 'wb') as fp:
             #     fp.write(encoded)
-            baidu_anno = baidu.get_annoatation_from_baidu(encoded)
+            baidu_anno = get_annoatation_from_baidu(encoded)
             print(baidu_anno)
 
             start = self.line.points[0]
@@ -919,7 +919,7 @@ class Canvas(QtWidgets.QWidget):
 
                 for part_name, info in person["body_parts"].items():
                     if part_name in pose_define["keypoints_priority"] or \
-                            (part_name in pose_define["keypoints"] and info["score"] > baidu.visible_threshold):
+                            (part_name in pose_define["keypoints"] and info["score"] > visible_threshold):
                         point = Shape(shape_type="point", group_id=group_id, label=part_name, confidence=info["score"])
                         location = QtCore.QPoint(info["x"] + start.x(), info["y"] + start.y())
                         point.current = [location]

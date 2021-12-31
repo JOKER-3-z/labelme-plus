@@ -40,7 +40,8 @@ def get_install_requires():
         "opencv-python-headless>=4.5.4.60",
         "scipy>=1.5.4",
         "scikit-image>=0.17.2",
-        "eiseg==0.4.1.2"
+        "eiseg==0.4.1.2",
+        "paddlepaddle==2.2.1"
     ]
 
     # Find python binding for qt with priority:

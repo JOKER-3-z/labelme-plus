@@ -16,7 +16,9 @@ RUN \
 
 RUN python3 -m pip install -U pip setuptools wheel
 
-RUN python3 -m pip install -v git+http://code.raintai.com:8090/ATA/labelPose.git@pose
+#RUN python3 -m pip install -v git+https://code.raintai.com:8090/ATA/labelPose.git@pose
+COPY . /tmp/
+RUN cd /tmp/ && pip install .
 
 
 
