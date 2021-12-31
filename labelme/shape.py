@@ -5,7 +5,7 @@ from qtpy import QtCore
 from qtpy import QtGui
 
 import labelme.utils
-from pose_config import *
+from labelme.pose_config import *
 import imgviz
 LABEL_COLORMAP = imgviz.label_colormap()
 

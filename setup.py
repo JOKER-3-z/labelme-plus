@@ -36,6 +36,11 @@ def get_install_requires():
         "PyYAML",
         "qtpy!=1.11.2",
         "termcolor",
+        "baidu-aip>=2.2.18.0",
+        "opencv-python-headless>=4.5.4.60",
+        "scipy>=1.5.4",
+        "scikit-image>=0.17.2",
+        "eiseg==0.4.1.2"
     ]
 
     # Find python binding for qt with priority:
@@ -146,7 +151,7 @@ def main():
             "Programming Language :: Python :: Implementation :: CPython",
             "Programming Language :: Python :: Implementation :: PyPy",
         ],
-        package_data={"labelme": ["icons/*", "config/*.yaml"]},
+        package_data={ "labelme": ["icons/*", "config/*.yaml", "weights/*"] },
         entry_points={
             "console_scripts": [
                 "labelme=labelme.__main__:main",

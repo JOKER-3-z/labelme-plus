@@ -8,15 +8,17 @@ sys.setrecursionlimit(5000)  # required on Windows
 
 
 a = Analysis(
-    ['labelme/__main__.py'],
-    pathex=['labelme'],
-    binaries=[],
+    ['labelme/__main__.py',"EISeg/eiseg/__main__.py"],
+    pathex=['labelme','EISeg/eiseg','EISeg'], #,
+    binaries=[], #'/usr/local/lib/python3.6/dist-packages/paddle/libs/'
     datas=[
         ('labelme/config/default_config.yaml', 'labelme/config'),
         ('labelme/icons/*', 'labelme/icons'),
+        ('weights/*', "weights/"),
+                ('EISeg/eiseg/config/*', 'eiseg/config'),
     ],
-    hiddenimports=[],
-    hookspath=[],
+    hiddenimports=[],#'paddle'
+    hookspath=[],#'./hooks/'
     runtime_hooks=[],
     excludes=[],
 )

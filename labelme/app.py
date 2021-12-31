@@ -31,7 +31,7 @@ from labelme.widgets import LabelListWidgetItem
 from labelme.widgets import ToolBar
 from labelme.widgets import UniqueLabelQListWidget
 from labelme.widgets import ZoomWidget
-from pose_config import *
+from labelme.pose_config import *
 import json
 import cv2
 import numpy as np

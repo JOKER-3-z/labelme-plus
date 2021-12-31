@@ -112,11 +112,15 @@ class App(QMainWindow):
         self.scrollArea.addAction(a)
 
     def loadImage(self, path):
-        image = cv2.imdecode(np.fromfile(path, dtype=np.uint8), 1)
-        image = image[:, :, ::-1]  # BGR转RGB
-        self.controller.setImage(image)
-        # self.image = image
-        self.updateImage()
+        try:
+            image = cv2.imdecode(np.fromfile(path, dtype=np.uint8), 1)
+            image = image[:, :, ::-1]  # BGR转RGB
+            self.controller.setImage(image)
+            # self.image = image
+            self.updateImage()
+        except Exception as e:
+            print(e)
+
 
     # def showImage(self):
     #     if self.image is not None:
@@ -244,7 +248,7 @@ app = QApplication(sys.argv)
 window = App()  # 创建对象
 
 print("to load image")
-window.loadImage("/mnt/hdd/work/EISeg/data/00000003.jpg")
+window.loadImage("demo.jpg")
 print("finiishi load image")
 # window.showImage()
 

@@ -6,8 +6,8 @@ from labelme import QT5
 from labelme.shape import Shape
 import labelme.utils
 
-from pose_config import *
-import baidu
+from labelme.pose_config import *
+import labelme.baidu
 
 from eiseg.controller import InteractiveController
 
@@ -16,7 +16,7 @@ import os
 import json
 import cv2
 import numpy as np
-from utils import calIOU
+from labelme.utils import calIOU
 
 # TODO(unknown):
 # - [maybe] Find optimal epsilon value.
@@ -137,8 +137,9 @@ class Canvas(QtWidgets.QWidget):
             predictor_params=self.predictor_params,
             prob_thresh=0.5  ##self.segThresh,
         )
-        param_path = "weights/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human/static_hrnet18s_ocr48_human.pdiparams"
-        param_path = os.path.join(".", param_path)
+        here = os.path.dirname(os.path.abspath(__file__))
+        param_path = "../weights/static_hrnet18s_ocr48_human.pdiparams"
+        param_path = os.path.join(here, param_path)
         param_path = os.path.abspath(param_path)
         self.load_thread = ModelThread(self.controller, param_path)
         self.load_thread.start()
