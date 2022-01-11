@@ -475,11 +475,13 @@ class Canvas(QtWidgets.QWidget):
                         assert len(self.current.points) == 1
                         self.current.points = self.line.points
                         self.finalise()
-                    elif self.createMode in ["pose","pose_by_baidu"]:
+                    elif self.createMode in ["pose"]:
                         assert len(self.current.points) == 1
                         self.current.points = self.line.points
                         self.finalise()
-
+                    elif self.createMode in ["pose_by_baidu"]:
+                        self.current.points = self.line.points
+                        self.finalise()
                     elif self.createMode == "linestrip":
                         self.current.addPoint(self.line[1])
                         self.line[0] = self.current[-1]
@@ -730,8 +732,9 @@ class Canvas(QtWidgets.QWidget):
         deleted_shapes = []
         if self.selectedShapes:
             for shape in self.selectedShapes:
-                self.shapes.remove(shape)
-                deleted_shapes.append(shape)
+                if shape in self.shapes:
+                    self.shapes.remove(shape)
+                    deleted_shapes.append(shape)
             self.storeShapes()
             self.selectedShapes = []
             self.update()

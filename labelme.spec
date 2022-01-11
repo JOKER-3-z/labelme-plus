@@ -14,7 +14,7 @@ a = Analysis(
     datas=[
         ('labelme/config/default_config.yaml', 'labelme/config'),
         ('labelme/icons/*', 'labelme/icons'),
-        ('weights/*', "weights/"),
+        ('labelme/weights/*', "labelme/weights/"),
                 ('EISeg/eiseg/config/*', 'eiseg/config'),
     ],
     hiddenimports=[],#'paddle'

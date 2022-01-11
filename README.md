@@ -1,3 +1,52 @@
+# LabelPose
+    a coco-like pose label tools base on Labelme + baidu pose api + baidu EISEG etc features
+
+# Addition features describe
+   1. create pose by predefined template. (Edit-> create Pose or Alt+P)
+        ideas from https://www.youtube.com/watch?v=q17gqr0EIUQ&t=103s
+        user could change template by edit->save pose template        
+   2. Label with skeleton, the lines between keypoints.
+       The keypoints and connection defined in labelme/pose_config.py       
+   3. segmentation by the EISEG   
+   4. temfplate keypoint label
+   
+   for more info refer to below video (./docs/label_example.webm)
+    <video src="./docs/label_example.webm" width="800px" height="600px" controls="controls"></video>
+   
+# label tips:
+    1. for small or crowd people, mark it as crowd that means will not trained as sample
+    2. Only label the visible keypoints, not guess
+    3. the label keep confidence and visible level, but, only visible = 2,0 are usde for coco-conversion
+    4. eiseg params are fixed. needn't changed.
+
+# script:
+   1. docker build
+    cd script && sh build_docker.sh
+   2. start docker
+    cd script && sh start_docker.sh
+   
+# TODO:
+    build standalone app. 
+    meets issues:
+    1. no frame_pb2-> should use paddle 2.1.3. paddle 2.2.1 has bugs
+    2. app stuck after build , refer to https://blog.csdn.net/u010674979/article/details/117291879 
+    should change file paddle\dataset\image.py
+    3. terminate called after throwing an instance of 'paddle::platform::EnforceNotMet'
+        what():  (NotFound) No allocator found for the place, CUDAPlace(0)
+        [Hint: Expected iter != allocators.end(), but received iter == allocators.end().]
+     
+     
+  
+
+
+
+
+
+
+
+
+
+
 <h1 align="center">
   <img src="labelme/icons/icon.png"><br/>labelme
 </h1>

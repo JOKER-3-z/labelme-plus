@@ -1364,9 +1364,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def remLabels(self, shapes):
         for shape in shapes:
-            item = self.labelList.findItemByShape(shape)
-            self.labelList.removeItem(item)
-            shape._todelete = True
+            try:
+                item = self.labelList.findItemByShape(shape)
+                self.labelList.removeItem(item)
+                shape._todelete = True
+            except Exception as e:
+                print(e)
 
 
     def loadShapes(self, shapes, replace=True):
