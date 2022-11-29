@@ -24,6 +24,36 @@
     cd script && sh build_docker.sh
    2. start docker
     cd script && sh start_docker.sh
+
+# 打包的方法
+   pip install -r requirements
+   修改paddlepaddle 两处 paddlepaddle库
+   1. site-packages\paddle\dataset\image.py
+       line 44-60 注释掉
+   import cv2
+    '''
+    interpreter = sys.executable
+    # Note(zhouwei): if use Python/C 'PyRun_SimpleString', 'sys.executable'
+    # will be the C++ execubable on Windows
+    if sys.platform == 'win32' and 'python.exe' not in interpreter:
+        interpreter = sys.exec_prefix + os.sep + 'python.exe'
+    import_cv2_proc = subprocess.Popen(
+        [interpreter, "-c", "import cv2"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+    out, err = import_cv2_proc.communicate()
+    retcode = import_cv2_proc.poll()
+    if retcode != 0:
+        cv2 = None
+    else:
+        import cv2
+    '''
+
+
+   2.  site-packages\paddle\fluid\proto\pass_desc_pb2.py 修改16行为
+      #import framework_pb2 as framework__pb2
+      import paddle.fluid.proto.framework_pb2 as framework__pb2
+
    
 # TODO:
     build standalone app. 
