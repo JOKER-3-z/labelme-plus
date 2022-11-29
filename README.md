@@ -27,7 +27,7 @@
 
 # 打包的方法
    pip install -r requirements
-   修改paddlepaddle 两处 paddlepaddle库
+   !!!!!!  修改paddlepaddle 两处 paddlepaddle库, 否则package的包会有dll类错误
    1. site-packages\paddle\dataset\image.py
        line 44-60 注释掉
    import cv2
