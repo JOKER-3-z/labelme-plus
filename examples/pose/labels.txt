@@ -17,3 +17,5 @@ left_knee
 right_knee
 left_ankle
 right_ankle
+person
+iscrowd

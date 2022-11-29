@@ -85,7 +85,7 @@ def run(keywords=''):
         i += 1
         print("i is ", i)
         if i >= num_img:
-            i = 0
+            break
         # show(image_data, annIds, more_str)
         # print image_info
         # for i in range(len(annIds)) :

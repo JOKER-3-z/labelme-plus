@@ -93,7 +93,7 @@ def main():
 
         img_info = perpare_images_info(in_img_file)
         dataset['images'].append(img_info)
-        max_iscrowd_id = 1000
+        max_iscrowd_id = 10000
 
         anno = {}
         for shape in label_file.shapes:
@@ -103,22 +103,22 @@ def main():
             shape_type = shape.get("shape_type")
 
             if group_id is None and shape_type != "polygon":
-                print("ignore ungroup shape", shape)
+                print("**************************************** ignore ungroup shape", shape)
                 continue
 
 
             if group_id not in anno.keys() and group_id is not None:
-                anno_id = int(base) * 10000 + group_id
-                anno[group_id] = {"num_keypoints": 17, "iscrowd": 0,
-                     "keypoints": [0 for i in range(17*3)], "image_id": int(base) ,
+                anno_id = int(base) * 100000 + group_id + 1
+                anno[group_id] = {"num_keypoints": 0, "iscrowd": 0,
+                     "keypoints": [ 0 for i in range(17*3)], "image_id": int(base) ,
                      "bbox": [], "category_id": 1, "id": anno_id, "area": -1,
                      "segmentation": []}
 
 
             if shape_type == "pose":
                 (x1, y1), (x2, y2) = points
-                x1, x2 = sorted([x1, x2])
-                y1, y2 = sorted([y1, y2])
+                x1, x2 = sorted([int(x1), int(x2)])
+                y1, y2 = sorted([int(y1), int(y2)])
 
                 anno[group_id]["bbox"] = [x1,y1,x2-x1,y2-y1]
                 anno[group_id]["area"] = (x2-x1) *(y2-y1)
@@ -126,28 +126,32 @@ def main():
             elif shape_type == "polygon" and label =="person":
                 if group_id is not None:
                     points = np.asarray(points).flatten().tolist()
+                    points = [int(x) for x in points]
                     anno[group_id]["segmentation"].append(points)
                 else:
-                    print("ignore not support segmentation", shape)
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!ignore not support segmentation", shape)
 
             elif shape_type == "point":
                 keypoints = pose_config.pose_define["keypoints"]
                 if keypoints.count(label) > 0 :
                     index = keypoints.index(label)
                 else:
-                    print("find point label not in list", shape)
+                    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!find point label not in list", shape)
                     continue
                 (x, y) = points[0]
-                anno[group_id]["keypoints"][index*3:(index+1)*3] = [x,y,2]
+                if index >=0:
+                    anno[group_id]["keypoints"][index*3:(index+1)*3] = [int(x),int(y),2]
+                    anno[group_id]["num_keypoints"] = anno[group_id]["num_keypoints"] + 1
+
 
             elif shape_type == "polygon" and label == "iscrowd":
-                anno_id = int(base) * 10000 + max_iscrowd_id
+                anno_id = int(base) * 100000 + max_iscrowd_id + 1
                 bbox = cv2.boundingRect(np.array(points).astype(int))
                 anno[max_iscrowd_id] = {
-                    "num_keypoints": 17, "iscrowd": 1,
+                    "num_keypoints": 0, "iscrowd": 1,
                     "keypoints": [0 for i in range(17 * 3)], "image_id": int(base),
                     "bbox": bbox, "category_id": 1, "id": anno_id, "area": bbox[2]*bbox[3],
-                    "segmentation": [np.asarray(points).flatten().tolist()]
+                    "segmentation": [[int(x) for x in np.asarray(points).flatten().tolist()]]
                 }
                 max_iscrowd_id += 1
 
