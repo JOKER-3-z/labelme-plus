@@ -1,1 +1,1 @@
-pyinstaller.exe labelme.spec
+pyinstaller.exe -D  --onedir labelme.spec

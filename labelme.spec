@@ -24,33 +24,41 @@ a = Analysis(
     excludes=[]
 )
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    name='labelme',
-    debug=False,
+    [],
+    exclude_binaries=True,
+    name='win',
+    debug=True,
+    bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     console=False,
-    icon='labelme/icons/icon.ico'
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+          embed_manifest=False,
+    codesign_identity=None,
+    entitlements_file=None,
+        icon='labelme/icons/icon.ico',
+    uac_admin=False,
 )
 
-#coll = COLLECT(exe,
- #              a.binaries,
-  #             a.zipfiles,
-   #            a.datas,
-    #           strip=False,
-     #          upx=True,
-      #         upx_exclude=[],
-       #        name='labelPose')
+coll = COLLECT(exe,
+               a.binaries,
+               a.zipfiles,
+               a.datas,
+               strip=False,
+               upx=True,
+               upx_exclude=[],
+               name='labelPose')
 
-app = BUNDLE(
-    exe,
-    name='Labelme.app',
-    icon='labelme/icons/icon.icns',
-    bundle_identifier=None,
-    info_plist={'NSHighResolutionCapable': 'True'},
-)
+#app = BUNDLE(
+#    exe,
+#    name='Labelme.app',
+#    icon='labelme/icons/icon.icns',
+#    bundle_identifier=None,
+#    info_plist={'NSHighResolutionCapable': 'True'},
+#)
