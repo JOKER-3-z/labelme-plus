@@ -7,22 +7,22 @@ import glob
 import json
 import os
 import os.path as osp
+import shutil
 import sys
 import uuid
 
-import imgviz
+#import imgviz
 import numpy as np
-
 import labelme
 import time
 import cv2
-import pose_config
+from labelme import pose_config
 
-try:
-    import pycocotools.mask
-except ImportError:
-    print("Please install pycocotools:\n\n    pip install pycocotools\n")
-    sys.exit(1)
+#try:
+#    import pycocotools.mask
+#except ImportError:
+#    print("Please install pycocotools:\n\n    pip install pycocotools\n")
+#    sys.exit(1)
 
 
 def images_init () :
@@ -44,29 +44,31 @@ def perpare_images_info(cur_img):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    parser.add_argument("input_dir", help="input annotated directory")
-    parser.add_argument("output_dir", help="output dataset directory")
-    parser.add_argument(
-        "--noviz", help="no visualization", action="store_true"
-    )
+    parser = argparse.ArgumentParser()
+    #parser.add_argument("input_dir", help="input annotated directory")
+    #parser.add_argument("output_dir", help="output dataset directory")
+    #parser.add_argument(
+    #    "--noviz", help="no visualization", action="store_true"
+    #)
     args = parser.parse_args()
+    args.output_dir="F:/cocodata"
+    args.input_dir="F:/humanDetectionDatasets"
+
 
     if osp.exists(args.output_dir):
         print("Output directory already exists:", args.output_dir)
         sys.exit(1)
     os.makedirs(args.output_dir)
     os.makedirs(osp.join(args.output_dir, "JPEGImages"))
-    if not args.noviz:
-        os.makedirs(osp.join(args.output_dir, "Visualization"))
+    #if not args.noviz:
+    #    os.makedirs(osp.join(args.output_dir, "Visualization"))
     print("Creating dataset:", args.output_dir)
 
 
     out_ann_file = osp.join(args.output_dir, "person_keypoints_train2017.json")
-    os.popen('cp {} {}'.format("template.json", out_ann_file))
-    time.sleep(2)
+    #os.popen('cp {} {}'.format("template.json", out_ann_file))
+    shutil.copyfile("template.json",out_ann_file)
+    #time.sleep(2)
     print("finish copy template json file")
 
     with open(out_ann_file, 'r') as load_f:
@@ -86,7 +88,8 @@ def main():
             print("!!Error file not exist", in_img_file)
             continue
 
-        os.popen('cp {} {}'.format(in_img_file, out_img_file))
+        #os.popen('cp {} {}'.format(in_img_file, out_img_file))
+        shutil.copyfile(in_img_file,out_img_file)
 
         print("to load file ", filename)
         label_file = labelme.LabelFile(filename=filename)
@@ -164,16 +167,6 @@ def main():
 
         for key, info in anno.items():
             dataset['annotations'].append(info)
-
-
-
-
-
-
-
-
-
-
     with open(out_ann_file, "w") as f:
         json.dump(dataset, f)
 

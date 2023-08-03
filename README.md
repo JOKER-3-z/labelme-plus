@@ -55,7 +55,7 @@
       import paddle.fluid.proto.framework_pb2 as framework__pb2
 
    
-# TODO:
+# TODO- DOne --temp log:
     build standalone app. 
     meets issues:
     1. no frame_pb2-> should use paddle 2.1.3. paddle 2.2.1 has bugs
